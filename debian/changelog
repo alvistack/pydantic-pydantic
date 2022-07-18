@@ -1,0 +1,5 @@
+python-pydantic (100:1.8.2-1) UNRELEASED; urgency=medium
+
+  * https://github.com/samuelcolvin/pydantic/releases/tag/v1.8.2
+
+ -- Wong Hoi Sing Edison <hswong3i@gmail.com>  Wed, 03 Nov 2021 13:39:00 +0800

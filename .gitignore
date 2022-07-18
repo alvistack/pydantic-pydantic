@@ -35,3 +35,4 @@ pydantic/*.so
 /.ghtopdep_cache/
 /fastapi/
 /codecov.sh
+.pybuild

@@ -351,14 +351,6 @@ class ModelMetaclass(ABCMeta):
         new_namespace = {
             '__config__': config,
             '__fields__': fields,
-            '__exclude_fields__': {
-                name: field.field_info.exclude for name, field in fields.items() if field.field_info.exclude is not None
-            }
-            or None,
-            '__include_fields__': {
-                name: field.field_info.include for name, field in fields.items() if field.field_info.include is not None
-            }
-            or None,
             '__validators__': vg.validators,
             '__pre_root_validators__': unique_list(pre_root_validators + pre_rv_new),
             '__post_root_validators__': unique_list(post_root_validators + post_rv_new),
@@ -385,8 +377,6 @@ class BaseModel(Representation, metaclass=ModelMetaclass):
     if TYPE_CHECKING:
         # populated by the metaclass, defined here to help IDEs only
         __fields__: Dict[str, ModelField] = {}
-        __include_fields__: Optional[Mapping[str, Any]] = None
-        __exclude_fields__: Optional[Mapping[str, Any]] = None
         __validators__: Dict[str, AnyCallable] = {}
         __pre_root_validators__: List[AnyCallable]
         __post_root_validators__: List[Tuple[bool, AnyCallable]]
@@ -858,24 +848,14 @@ class BaseModel(Representation, metaclass=ModelMetaclass):
         exclude_none: bool = False,
     ) -> 'TupleGenerator':
 
-        # Merge field set excludes with explicit exclude parameter with explicit overriding field set options.
-        # The extra "is not None" guards are not logically necessary but optimizes performance for the simple case.
-        if exclude is not None or self.__exclude_fields__ is not None:
-            exclude = ValueItems.merge(self.__exclude_fields__, exclude)
-
-        if include is not None or self.__include_fields__ is not None:
-            include = ValueItems.merge(self.__include_fields__, include, intersect=True)
-
-        allowed_keys = self._calculate_keys(
-            include=include, exclude=exclude, exclude_unset=exclude_unset  # type: ignore
-        )
+        allowed_keys = self._calculate_keys(include=include, exclude=exclude, exclude_unset=exclude_unset)
         if allowed_keys is None and not (to_dict or by_alias or exclude_unset or exclude_defaults or exclude_none):
             # huge boost for plain _iter()
             yield from self.__dict__.items()
             return
 
-        value_exclude = ValueItems(self, exclude) if exclude is not None else None
-        value_include = ValueItems(self, include) if include is not None else None
+        value_exclude = ValueItems(self, exclude) if exclude else None
+        value_include = ValueItems(self, include) if include else None
 
         for field_key, v in self.__dict__.items():
             if (allowed_keys is not None and field_key not in allowed_keys) or (exclude_none and v is None):
@@ -906,8 +886,8 @@ class BaseModel(Representation, metaclass=ModelMetaclass):
 
     def _calculate_keys(
         self,
-        include: Optional['MappingIntStrAny'],
-        exclude: Optional['MappingIntStrAny'],
+        include: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']],
+        exclude: Optional[Union['AbstractSetIntStr', 'MappingIntStrAny']],
         exclude_unset: bool,
         update: Optional['DictStrAny'] = None,
     ) -> Optional[AbstractSet[str]]:
@@ -921,13 +901,19 @@ class BaseModel(Representation, metaclass=ModelMetaclass):
             keys = self.__dict__.keys()
 
         if include is not None:
-            keys &= include.keys()
+            if isinstance(include, Mapping):
+                keys &= include.keys()
+            else:
+                keys &= include
 
         if update:
             keys -= update.keys()
 
         if exclude:
-            keys -= {k for k, v in exclude.items() if ValueItems.is_true(v)}
+            if isinstance(exclude, Mapping):
+                keys -= {k for k, v in exclude.items() if v is ...}
+            else:
+                keys -= exclude
 
         return keys
 
@@ -938,7 +924,7 @@ class BaseModel(Representation, metaclass=ModelMetaclass):
             return self.dict() == other
 
     def __repr_args__(self) -> 'ReprArgs':
-        return [(k, v) for k, v in self.__dict__.items() if self.__fields__[k].field_info.repr]
+        return self.__dict__.items()  # type: ignore
 
 
 _is_base_model_class_defined = True
