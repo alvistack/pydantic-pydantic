@@ -1,0 +1,5 @@
+python-pydantic (100:2.0.2-1) UNRELEASED; urgency=medium
+
+  * https://github.com/pydantic/pydantic/releases/tag/v2.0.2
+
+ -- Wong Hoi Sing Edison <hswong3i@pantarei-design.com>  Thu, 06 Jul 2023 10:22:25 +0800
