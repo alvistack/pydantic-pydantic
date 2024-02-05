@@ -53,3 +53,5 @@ pydantic/*.so
 .auto-format
 /sandbox/
 /worktrees/
+
+.pybuild
