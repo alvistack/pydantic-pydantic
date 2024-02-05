@@ -1,0 +1,4 @@
+python3-pydantic: copyright-without-copyright-notice
+python3-pydantic: initial-upload-closes-no-bugs
+python3-pydantic: no-manual-page
+python3-pydantic: zero-byte-file-in-doc-directory
